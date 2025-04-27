@@ -1,16 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Distributed Auction System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #main-ui { display: none; }
-    #create-auction-form { display: none; margin-top: 20px; }
-    label { display: block; margin-top: 10px; }
-    .auction-button { margin: 5px; }
+    :root {
+      --primary: #4A90E2;
+      --accent:  #50E3C2;
+      --bg:      #F5F7FA;
+      --card:    #FFFFFF;
+      --text:    #333333;
+    }
+  
+    * { box-sizing: border-box; }
+  
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+  
+    #main-ui {
+      max-width: 900px;
+      display: none;  
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+  
+    h2, h3 {
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+  
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+  
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+  
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #DDD;
+      border-radius: 4px;
+      transition: border-color .2s;
+    }
+    input:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+  
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    button:hover {
+      background: var(--accent);
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+  
+    .auction-button {
+      background: var(--card);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      margin: 5px;
+    }
+  
+    .auction-button:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+  
+    #auction-buttons {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    #login-ui {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--card);
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      width: 320px;
+      text-align: center;
+    }
+  
+    pre#admin-auction-output,
+    pre#output {
+      background: #F0F4F8;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    body {
+        overflow: hidden;  /* prevent scroll during login */
+        height: 100vh;
+    }
+
+    #login-ui input,
+    #login-ui button {
+      width: 100%;
+      margin-top: 1rem;
+    }
   </style>
 </head>
+
 <body>
 
   <!-- Participant ID Input Page -->
@@ -22,13 +148,12 @@
 
   <!-- Main Auction UI -->
   <div id="main-ui">
-    <h2>Auction Actions</h2>
+    <h2>Distributed Auction System</h2>
     <p><strong>Logged in as:</strong> <span id="participant-id-display"></span></p>
 
-    <div id="admin-actions" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <button onclick="showCreateAuctionForm()">Create Auction</button>
-        <button onclick="listAuctions()">List Auctions</button>
+    <div id="admin-actions" class="card" style="display: none;">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+          <button onclick="listAuctions()">List Available Auctions</button>
       </div>
       
       <div style="display: flex;">
@@ -53,7 +178,7 @@
     </div>
       
       
-    <div id="participant-actions" style="display: none;">
+    <div id="participant-actions" class="card" style="display: none;">
       <button onclick="listAuctions()">List Available Auctions</button>
 
       <div id="auction-buttons" style="margin-top: 15px;"></div>
