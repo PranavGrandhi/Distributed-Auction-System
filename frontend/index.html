@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Distributed Auction System</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #main-ui { display: none; }
+    #create-auction-form { display: none; margin-top: 20px; }
+    label { display: block; margin-top: 10px; }
+    .auction-button { margin: 5px; }
+  </style>
+</head>
+<body>
+
+  <!-- Participant ID Input Page -->
+  <div id="login-ui">
+    <h2>Enter Participant ID</h2>
+    <input type="text" id="participant-id-input" placeholder="Enter your ID" />
+    <button onclick="registerParticipant()">Start</button>
+  </div>
+
+  <!-- Main Auction UI -->
+  <div id="main-ui">
+    <h2>Auction Actions</h2>
+    <p><strong>Logged in as:</strong> <span id="participant-id-display"></span></p>
+
+    <div id="admin-actions" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <button onclick="showCreateAuctionForm()">Create Auction</button>
+        <button onclick="listAuctions()">List Auctions</button>
+      </div>
+      
+      <div style="display: flex;">
+        <!-- Left side: Create Auction Form -->
+        <div id="create-auction-form" style="flex: 1; margin-right: 20px;">
+          <h3>Create New Auction</h3>
+          <label>Name: <input type="text" id="auction-name"></label>
+          <label>Description: <input type="text" id="auction-description"></label>
+          <label>Minimum Bid: <input type="number" id="auction-min-bid" step="0.01"></label>
+          <label>Expiry Time (ISO Format or leave blank for +24h): 
+            <input type="text" id="auction-expiry-time" placeholder="YYYY-MM-DDTHH:MM:SSZ">
+          </label>
+          <button onclick="createAuction()">Submit Auction</button>
+        </div>
+      
+        <!-- Right side: List of Auctions -->
+        <div id="auction-list" style="flex: 1;">
+          <h3>Available Auctions</h3>
+          <pre id="admin-auction-output"></pre>
+        </div>
+      </div>
+    </div>
+      
+      
+    <div id="participant-actions" style="display: none;">
+      <button onclick="listAuctions()">List Available Auctions</button>
+
+      <div id="auction-buttons" style="margin-top: 15px;"></div>
+
+      <div id="bid-actions" style="margin-top: 20px; display: none;">
+        <p><strong>Selected Auction:</strong> <span id="selected-auction-id"></span></p>
+        <h3>Selected Auction:</h3>
+        <div id="selected-auction-id"></div>
+    
+        <!-- New: user-entered bid amount -->
+        <label>
+          Your Bid Amount:
+          <input type="number" id="bid-amount" step="0.01" placeholder="e.g. 100.00" />
+        </label>
+        <button onclick="placeBid()">Place Bid</button>
+      </div>
+    </div>
+
+    <pre id="output"></pre>
+  </div>
+
+<script>
+let participantID = null;
+let auctionID = null;
+const serverURL = "http://localhost:8080";
+
+function registerParticipant() {
+  clearScreen();
+  const input = document.getElementById('participant-id-input').value.trim();
+  if (!input) {
+    alert("Please enter a valid Participant ID!");
+    return;
+  }
+  participantID = input;
+  document.getElementById('participant-id-display').textContent = participantID;
+  document.getElementById('login-ui').style.display = 'none';
+  document.getElementById('main-ui').style.display = 'block';
+
+  if (participantID.toLowerCase() === "admin") {
+    document.getElementById('admin-actions').style.display = 'block';
+    document.getElementById('participant-actions').style.display = 'none';
+  } else {
+    document.getElementById('admin-actions').style.display = 'none';
+    document.getElementById('participant-actions').style.display = 'block';
+  }
+}
+
+function showCreateAuctionForm() {
+  document.getElementById('create-auction-form').style.display = 'block';
+}
+
+async function createAuction() {
+  clearScreen();  // Clear screen first
+  const nameInput = document.getElementById('auction-name');
+  const descriptionInput = document.getElementById('auction-description');
+  const minBidInput = document.getElementById('auction-min-bid');
+  const expiryInput = document.getElementById('auction-expiry-time');
+
+  const name = nameInput.value.trim();
+  const description = descriptionInput.value.trim();
+  const minBidStr = minBidInput.value.trim();
+  const expiryStr = expiryInput.value.trim();
+
+  if (!name || !description || !minBidStr) {
+    alert("Please fill in all required fields (Name, Description, Minimum Bid)");
+    return;
+  }
+
+  const minBid = parseFloat(minBidStr);
+  if (isNaN(minBid) || minBid <= 0) {
+    alert("Minimum bid must be a positive number.");
+    return;
+  }
+
+  let expiryTime;
+  if (expiryStr) {
+    expiryTime = new Date(expiryStr);
+    if (isNaN(expiryTime.getTime())) {
+      alert("Invalid Expiry Time format. Use ISO format: YYYY-MM-DDTHH:MM:SSZ");
+      return;
+    }
+  } else {
+    expiryTime = new Date(Date.now() + 24 * 3600 * 1000); // default 24 hours
+  }
+
+  const item = {
+    name: name,
+    description: description,
+    minimum_bid: minBid,
+    expiry_time: expiryTime.toISOString()
+  };
+
+  const res = await fetch(serverURL + '/auctions', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(item)
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    logOutput("Created auction with ID: " + data.id);
+
+    // ✅ Clear form inputs after successful creation
+    nameInput.value = "";
+    descriptionInput.value = "";
+    minBidInput.value = "";
+    expiryInput.value = "";
+  } else {
+    const err = await res.text();
+    logOutput("Error creating auction: " + err);
+  }
+}
+
+async function listAuctions() {
+  clearScreen();  // Clear old content
+  const res = await fetch(serverURL + '/auctions');
+  const auctions = await res.json();
+
+  if (participantID.toLowerCase() === "admin") {
+    // Admin view: print into right side
+    const output = document.getElementById('admin-auction-output');
+    output.textContent = "";
+
+    if (auctions.length === 0) {
+      output.textContent = "No auctions available.";
+      return;
+    }
+
+    auctions.forEach(a => {
+      output.textContent += `Name: ${a.name}\nID: ${a.id}\nDescription: ${a.description}\nMinimum Bid: ${a.minimum_bid}\nExpires: ${a.expiry_time}\n\n`;
+    });
+  } else {
+    // Participant view: show auction buttons
+    const auctionButtonsDiv = document.getElementById('auction-buttons');
+    auctionButtonsDiv.innerHTML = "";
+
+    if (auctions.length === 0) {
+      auctionButtonsDiv.innerHTML = "<p>No auctions available.</p>";
+      return;
+    }
+
+    auctions.forEach(a => {
+      const btn = document.createElement('button');
+      btn.textContent = `${a.name} (${a.id})`;
+      btn.className = 'auction-button';
+      btn.onclick = () => selectAuction(a.id);
+      auctionButtonsDiv.appendChild(btn);
+    });
+  }
+}
+
+async function selectAuction(id) {
+  clearScreen();  // Clear screen before showing new auction
+  auctionID = id;
+
+  // Fetch auction details
+  const auctionRes = await fetch(`${serverURL}/auctions/${id}`);
+  const auction = await auctionRes.json();
+
+  // Fetch auction status (to get highest bid info)
+  const statusRes = await fetch(`${serverURL}/auctions/${id}/status`);
+  const status = await statusRes.json();
+
+  const selectedAuctionDiv = document.getElementById('selected-auction-id');
+  selectedAuctionDiv.innerHTML = `
+    <strong>Name:</strong> ${auction.name}<br>
+    <strong>Description:</strong> ${auction.description}<br>
+    <strong>Minimum Bid:</strong> ${auction.minimum_bid}<br>
+    <strong>Expires:</strong> ${new Date(auction.expiry_time).toLocaleString()}<br>
+    <strong>Current Highest Bid:</strong>
+    <span id="current-highest-bid">
+      ${status.highest_bid ? status.highest_bid.bid_price : "No bids yet"}
+    </span>
+  `;
+
+  document.getElementById('bid-actions').style.display = 'block';
+}
+
+
+async function placeBid() {
+  //clearScreen();
+  if (!auctionID) {
+    logOutput("Please select an auction first!");
+    return;
+  }
+  if (!participantID) {
+    logOutput("Participant ID missing!");
+    return;
+  }
+
+  // read user’s bid
+  const bidPrice = parseFloat(document.getElementById('bid-amount').value);
+  if (isNaN(bidPrice) || bidPrice <= 0) {
+    return alert("Enter a valid bid amount!");
+  }
+  const bid = {
+    participant_id:   participantID,
+    auction_item_id: auctionID,
+    bid_price:       bidPrice,
+    timestamp:       new Date().toISOString()
+  };
+
+  const res = await fetch(serverURL + `/auctions/${auctionID}/bids`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(bid)
+  });
+
+  if (!res.ok) {
+     const err = await res.text();
+     return logOutput(`Error placing bid: ${err}`);
+  }
+
+  logOutput(`Placed bid: $${bid.bid_price.toFixed(2)}`);
+  document.getElementById('bid-amount').value = "";
+  // fetch updated status and update only the span
+  const statusRes = await fetch(`${serverURL}/auctions/${auctionID}/status`);
+  const status    = await statusRes.json();
+  document.getElementById('current-highest-bid').textContent =
+  status.highest_bid ? status.highest_bid.bid_price : "No bids yet";
+}
+
+function clearScreen() {
+    document.getElementById('output').textContent = "";
+    document.getElementById('auction-buttons').innerHTML = "";
+    //document.getElementById('selected-auction-id').textContent = "";
+    document.getElementById('bid-actions').style.display = 'none';
+}
+
+function logOutput(message) {
+  const output = document.getElementById('output');
+  output.textContent += message + "\n";
+}
+</script>
+
+</body>
+</html>

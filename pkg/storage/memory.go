@@ -47,6 +47,18 @@ func (m *MemoryStore) CreateAuction(item auction.AuctionItem) (auction.AuctionIt
 	return item, nil
 }
 
+// ListAuctions returns all auction items in the store
+func (m *MemoryStore) ListAuctions() ([]auction.AuctionItem, error) {
+	m.auctionsMutex.RLock()
+	defer m.auctionsMutex.RUnlock()
+
+	auctions := make([]auction.AuctionItem, 0, len(m.auctions))
+	for _, item := range m.auctions {
+		auctions = append(auctions, item)
+	}
+	return auctions, nil
+}
+
 // GetAuction retrieves an auction by ID
 func (m *MemoryStore) GetAuction(id string) (auction.AuctionItem, error) {
 	m.auctionsMutex.RLock()

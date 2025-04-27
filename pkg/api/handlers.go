@@ -28,11 +28,18 @@ func NewServer() *Server {
 
 // setupRoutes configures the API routes
 func (s *Server) setupRoutes() {
+	s.Router.HandleFunc("/", serveFrontend).Methods("GET")
 	s.Router.HandleFunc("/auctions", s.CreateAuction).Methods("POST")
+	s.Router.HandleFunc("/auctions", s.ListAuctions).Methods("GET")
 	s.Router.HandleFunc("/auctions/{id}", s.GetAuction).Methods("GET")
 	s.Router.HandleFunc("/auctions/{id}/bids", s.PlaceBid).Methods("POST")
 	s.Router.HandleFunc("/auctions/{id}/status", s.QueryAuctionStatus).Methods("GET")
 	s.Router.HandleFunc("/auctions/{id}/history", s.GetBidHistory).Methods("GET")
+}
+
+func serveFrontend(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	http.ServeFile(w, r, "frontend/index.html")
 }
 
 // CreateAuction handles requests to create a new auction item
@@ -58,6 +65,18 @@ func (s *Server) CreateAuction(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(createdItem)
+}
+
+// ListAuctions handles GET /auctions
+func (s *Server) ListAuctions(w http.ResponseWriter, r *http.Request) {
+	auctions, err := s.Store.ListAuctions()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(auctions)
 }
 
 // GetAuction handles requests to get an auction item by ID
