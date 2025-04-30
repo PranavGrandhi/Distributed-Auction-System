@@ -123,6 +123,10 @@ func (z *ZKStore) ListAuctions() ([]auction.AuctionItem, error) {
 // GetAuction retrieves an auction by ID
 func (z *ZKStore) GetAuction(id string) (auction.AuctionItem, error) {
 	auctionPath := path.Join(z.basePath, "auctions", id)
+	_, err := z.conn.Sync(auctionPath)
+	if err != nil {
+		return auction.AuctionItem{}, err
+	}
 	data, _, err := z.conn.Get(auctionPath)
 	if err != nil {
 		return auction.AuctionItem{}, errors.New("auction not found")
@@ -138,7 +142,7 @@ func (z *ZKStore) GetAuction(id string) (auction.AuctionItem, error) {
 
 // PlaceBid adds a new bid to an auction item with distributed locking
 func (z *ZKStore) PlaceBid(bid auction.Bid) error {
-	// Get the auction to check if it exists and hasn't expired
+	// Get the auction to check if it exists and hasn't expired, syncs to get the latest data
 	auctionItem, err := z.GetAuction(bid.AuctionItemID)
 	if err != nil {
 		return err
@@ -244,6 +248,14 @@ func (z *ZKStore) GetBidHistory(auctionID string) ([]auction.Bid, error) {
 	exists, _, err := z.conn.Exists(bidsPath)
 	if err != nil {
 		return nil, err
+	}
+
+	// Sync the path with ZooKeeper to ensure we have the latest view
+	if exists {
+		_, err = z.conn.Sync(bidsPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !exists {
