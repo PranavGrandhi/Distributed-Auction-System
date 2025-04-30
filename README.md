@@ -84,69 +84,13 @@ DISTRIBUTED-AUCTION-SYSTEM/
 
 #### Setting Up ZooKeeper with Docker
 
-1. Create a file named `docker-compose.yml` with the following content:
-
-```yaml
-version: '3.1'
-
-services:
-  zoo1:
-    image: zookeeper
-    restart: always
-    hostname: zoo1
-    ports:
-      - 2181:2181
-    environment:
-      ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
-
-  zoo2:
-    image: zookeeper
-    restart: always
-    hostname: zoo2
-    ports:
-      - 2182:2181
-    environment:
-      ZOO_MY_ID: 2
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
-
-  zoo3:
-    image: zookeeper
-    restart: always
-    hostname: zoo3
-    ports:
-      - 2183:2181
-    environment:
-      ZOO_MY_ID: 3
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
-```
-
-2. Start the ZooKeeper ensemble:
+1. Start the ZooKeeper ensemble:
    ```bash
    docker-compose up -d
    ```
+   Creates 3 zookeeper nodes.
 
-3. Initialize the required ZooKeeper paths:
-   ```bash
-   # Connect to ZooKeeper CLI
-   docker exec -it zookeeper-docker-zoo1-1 zkCli.sh
-   
-   # Create required paths
-   ls /
-   create /auction-system ""
-   create /auction-system/auctions ""
-   create /auction-system/bids ""
-   create /auction-system/locks ""
-   create /auction-system/services ""
-   
-   # Verify the paths
-   ls /auction-system
-   
-   # Exit the CLI
-   quit
-   ```
-
-4. Start multiple auction server instances:
+2. Start multiple auction server instances:
    ```bash
    # Terminal 1
    go run cmd/server/main.go --port=8080 --use-zk=true --zk=localhost:2181,localhost:2182,localhost:2183
