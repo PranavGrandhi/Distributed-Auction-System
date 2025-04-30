@@ -88,6 +88,7 @@ DISTRIBUTED-AUCTION-SYSTEM/
    ```bash
    docker-compose up -d
    ```
+   Creates 3 zookeeper nodes.
 
 2. Start multiple auction server instances:
    ```bash
