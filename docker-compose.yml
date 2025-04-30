@@ -1,0 +1,58 @@
+version: '3.1'
+
+services:
+  zoo1:
+    image: zookeeper
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    # Remove custom command to let ZooKeeper initialize properly
+
+  zoo2:
+    image: zookeeper
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    # Remove custom command to let ZooKeeper initialize properly
+
+  zoo3:
+    image: zookeeper
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    # Remove custom command to let ZooKeeper initialize properly
+    
+  zookeeper-init:
+    image: zookeeper
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    restart: on-failure
+    command: >
+      sh -c "
+        echo 'Waiting for ZooKeeper cluster to be ready...' &&
+        sleep 20 &&
+        echo 'Creating ZooKeeper nodes...' &&
+        zkCli.sh -server zoo1:2181 <<EOF
+        ls /
+        create /auction-system \"\"
+        create /auction-system/auctions \"\"
+        create /auction-system/bids \"\"
+        ls /auction-system
+        quit
+        EOF
+        echo 'ZooKeeper nodes created successfully!'
+      "
