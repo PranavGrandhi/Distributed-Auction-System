@@ -6,3 +6,5 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 )
+
+require github.com/go-zookeeper/zk v1.0.4 // indirect

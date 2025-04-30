@@ -143,6 +143,14 @@
   <div id="login-ui">
     <h2>Enter Participant ID</h2>
     <input type="text" id="participant-id-input" placeholder="Enter your ID" />
+    
+    <!-- Add server selection dropdown -->
+    <!-- <select id="server-select">
+      <option value="http://localhost:8080">Server 1 (8080)</option>
+      <option value="http://localhost:8081">Server 2 (8081)</option>
+      <option value="http://localhost:8082">Server 3 (8082)</option>
+    </select> -->
+    
     <button onclick="registerParticipant()">Start</button>
   </div>
 
@@ -150,6 +158,20 @@
   <div id="main-ui">
     <h2>Distributed Auction System</h2>
     <p><strong>Logged in as:</strong> <span id="participant-id-display"></span></p>
+
+    <!-- <div class="card" style="margin-bottom: 20px;">
+      <div class="flex-between">
+        <h3>Server Connection</h3>
+        <div>
+          <select id="runtime-server-select">
+            <option value="http://localhost:8080">Server 1 (8080)</option>
+            <option value="http://localhost:8081">Server 2 (8081)</option>
+            <option value="http://localhost:8082">Server 3 (8082)</option>
+          </select>
+          <button onclick="switchServer()">Switch Server</button>
+        </div>
+      </div>
+    </div> -->
 
     <div id="admin-actions" class="card" style="display: none;">
       <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
@@ -203,7 +225,8 @@
 <script>
 let participantID = null;
 let auctionID = null;
-const serverURL = "http://localhost:8080";
+const serverURL = window.location.origin;
+
 
 function registerParticipant() {
   clearScreen();
@@ -212,8 +235,16 @@ function registerParticipant() {
     alert("Please enter a valid Participant ID!");
     return;
   }
+
+  // serverURL = document.getElementById('server-select').value;
   participantID = input;
   document.getElementById('participant-id-display').textContent = participantID;
+  // Also display which server we're connected to
+  // document.getElementById('server-display').textContent = serverURL.replace('http://localhost:', 'Server on port ');
+
+  // Set the runtime server select to match the initial selection
+  // document.getElementById('runtime-server-select').value = serverURL;
+
   document.getElementById('login-ui').style.display = 'none';
   document.getElementById('main-ui').style.display = 'block';
 
@@ -225,6 +256,18 @@ function registerParticipant() {
     document.getElementById('participant-actions').style.display = 'block';
   }
 }
+
+// function switchServer() {
+//   const newServer = document.getElementById('runtime-server-select').value;
+//   serverURL = newServer;
+//   document.getElementById('server-display').textContent = serverURL.replace('http://localhost:', 'Server on port ');
+//   logOutput(`Switched to ${serverURL}`);
+  
+//   // Refresh auction list if we're viewing it
+//   if (document.getElementById('auction-buttons').innerHTML !== "") {
+//     listAuctions();
+//   }
+// }
 
 function showCreateAuctionForm() {
   document.getElementById('create-auction-form').style.display = 'block';

@@ -13,7 +13,22 @@ import (
 // Server represents the API server
 type Server struct {
 	Router *mux.Router
-	Store  *storage.MemoryStore
+	Store  storage.Store
+}
+
+// NewZooKeeperServer creates a new API server with ZooKeeper storage
+func NewZooKeeperServer(zkHosts []string) (*Server, error) {
+	store, err := storage.NewZKStore(zkHosts, "/auction-system")
+	if err != nil {
+		return nil, err
+	}
+
+	server := &Server{
+		Router: mux.NewRouter(),
+		Store:  store,
+	}
+	server.setupRoutes()
+	return server, nil
 }
 
 // NewServer creates a new API server
@@ -28,6 +43,13 @@ func NewServer() *Server {
 
 // setupRoutes configures the API routes
 func (s *Server) setupRoutes() {
+
+	// Add CORS middleware
+	s.Router.Use(corsMiddleware)
+
+	// Static file handling
+	s.Router.PathPrefix("/frontend/").Handler(http.StripPrefix("/frontend/", http.FileServer(http.Dir("./frontend"))))
+
 	s.Router.HandleFunc("/", serveFrontend).Methods("GET")
 	s.Router.HandleFunc("/auctions", s.CreateAuction).Methods("POST")
 	s.Router.HandleFunc("/auctions", s.ListAuctions).Methods("GET")
@@ -37,9 +59,30 @@ func (s *Server) setupRoutes() {
 	s.Router.HandleFunc("/auctions/{id}/history", s.GetBidHistory).Methods("GET")
 }
 
+// corsMiddleware adds CORS headers to enable cross-origin requests
+
+func corsMiddleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+
+}
+
 func serveFrontend(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	http.ServeFile(w, r, "frontend/index.html")
+	http.ServeFile(w, r, "./frontend/index.html")
 }
 
 // CreateAuction handles requests to create a new auction item
